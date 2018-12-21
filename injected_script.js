@@ -71,7 +71,8 @@
 			columnPoints.push({ name: columnName, point: totalPoints });
 		});
 
-		var daysPass = 10 - parseInt(document.querySelector('.days-left').textContent, 10);
+		var daysLeft = parseInt(document.querySelector('.days-left').textContent, 10)
+		var daysPass = (daysLeft > 10 ? 20 : 10) - daysLeft;
 
 		if (doneTickets.length > 0) updateBadge('ghx-tickets', doneTickets.filter(item => item.days < daysPass).map(item => item.key)).style.textTransform = 'uppercase';
 
