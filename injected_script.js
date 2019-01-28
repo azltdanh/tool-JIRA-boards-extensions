@@ -19,9 +19,14 @@
 
 		return node;
 	};
+	var debug = false;
 	function generateCounters() {
+		var sprintLength = 10;
+		var daysLeft = parseInt(document.querySelector('.days-left').textContent, 10);
+		var daysPass = sprintLength - daysLeft;
+		if (debug) console.log('sprintLength', sprintLength, 'daysLeft', daysLeft, 'daysPass', daysPass);
 		var sprintReports = [];
-		var doneTickets = [];
+		var sprintTickets = [];
 		var columnPoints = [];
 		var headers = document.querySelectorAll('li[data-id]');
 		headers.forEach(function (header) {
@@ -59,28 +64,40 @@
 				var issuePoints = parseInt(estimate.textContent, 10);
 				totalPoints += isNaN(issuePoints) ? 0 : issuePoints;
 
-				if (columnName == 'done') {
-					var ghxDays = ticket.querySelector('.ghx-days');
-					var issueDays = ghxDays ? parseInt(ghxDays.getAttribute('data-tooltip'), 10) : 0;
-					var issueKey = ticket.getAttribute('data-issue-key');
-					doneTickets.push({ key: issueKey, days: issueDays, point: issuePoints });
-				}
+				var ghxDays = ticket.querySelector('.ghx-days');
+				var issueDays = ghxDays ? parseInt(ghxDays.getAttribute('data-tooltip'), 10) : 0;
+				var issueKey = ticket.getAttribute('data-issue-key');
+				sprintTickets.push(
+					{
+						key: issueKey,
+						days: issueDays,
+						point: issuePoints,
+						status: columnName
+					});
 			});
 
 			badge.appendChild(document.createTextNode(totalPoints));
 			columnPoints.push({ name: columnName, point: totalPoints });
 		});
 
-		var sprintLength = 10;
-		// var sprintLength = 20; // special Sprint at the end of the year
-		var daysLeft = parseInt(document.querySelector('.days-left').textContent, 10);
-		var daysPass = sprintLength - daysLeft;
+		if (debug) console.log('sprintTickets', sprintTickets);
 
-		if (doneTickets.length > 0) updateBadge('ghx-tickets', doneTickets.filter(item => item.days < daysPass).map(item => item.key)).style.textTransform = 'uppercase';
+		var deployTickets = sprintTickets.filter(item => item.status == 'deploy' && item.days <= daysPass);
+		if (debug) console.log('deployTickets', deployTickets);
+		if (deployTickets.length > 0) {
+			updateBadge('ghx-tickets', deployTickets.map(item => item.key)).style.textTransform = 'uppercase';
+		}
 
-		sprintReports.push(`committed: 55`);
-		sprintReports.push(`in-sprint: ${getSum(columnPoints.filter(item => item.name != 'done' && item.name != 'total'))}`);
-		sprintReports.push(`done-in-sprint: ${getSum(doneTickets.filter(item => item.days < daysPass && item.point > 0))}`);
+		var doneTickets = sprintTickets.filter(item => item.status == 'done' && item.days <= daysPass);
+		if (debug) console.log('doneTickets', doneTickets);
+		if (doneTickets.length > 0) {
+			updateBadge('ghx-tickets', doneTickets.map(item => item.key)).style.textTransform = 'uppercase';
+		}
+
+		sprintReports.push(`committed: 50`);
+		sprintReports.push(`in-sprint: ${getSum(columnPoints.filter(item => item.name != 'deploy' && item.name != 'done' && item.name != 'total'))}`);
+		sprintReports.push(`deploy-in-sprint: ${getSum(deployTickets.filter(item => item.point > 0))}`);
+		sprintReports.push(`done-in-sprint: ${getSum(doneTickets.filter(item => item.point > 0))}`);
 		updateBadge('ghx-sprint', sprintReports);
 
 		columnPoints.push({ name: 'total', point: getSum(columnPoints) });
