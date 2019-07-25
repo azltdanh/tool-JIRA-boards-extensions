@@ -1,120 +1,231 @@
-(function (document) {
-	var calcSum = (accumulator, currentValue) => parseInt(accumulator) + parseInt(currentValue);
-	var getSum = (arrPoints) => { return arrPoints.length > 0 ? arrPoints.map(item => item.point).reduce(calcSum) : 0 };
-	var updateBadge = (id, data) => {
-		var ghxWrapper = document.querySelector('.ghx-work-wrapper');
-		var node = ghxWrapper.querySelector(`#${id}`);
-		if (!node) {
-			node = document.createElement('div');
-			node.id = id;
-			node.className = 'aui-badge';
-			node.style.marginBottom = '5px';
-			// node.style.textTransform = 'uppercase';
-			ghxWrapper.prepend(node);
-		}
-		else {
-			node.removeChild(node.childNodes[0]);
-		}
-		node.appendChild(document.createTextNode(data.join(', ')));
+(function(document) {
+  const calcSum = (accumulator, currentValue) =>
+    parseInt(accumulator) + parseInt(currentValue);
 
-		return node;
-	};
-	var debug = false;
-	function generateCounters() {
-		var sprintLength = 10;
-		var daysLeft = parseInt(document.querySelector('.days-left').textContent, 10);
-		var daysPass = sprintLength - daysLeft;
-		if (debug) console.log('sprintLength', sprintLength, 'daysLeft', daysLeft, 'daysPass', daysPass);
-		var sprintReports = [];
-		var sprintTickets = [];
-		var columnPoints = [];
-		var headers = document.querySelectorAll('li[data-id]');
-		headers.forEach(function (header) {
-			var columnId = header.getAttribute('data-id');
-			var columnName = header.querySelector('h2').textContent.toLowerCase().replace(/(code |ready for |ready to )/gi, '');
-			var ghxLimits = header.querySelector('.ghx-limits');
-			var badge = header.querySelector('[data-column-id="' + columnId + '"]');
+  const getSum = arrPoints => {
+    return arrPoints.length > 0
+      ? arrPoints.map(item => item.point).reduce(calcSum)
+      : 0;
+  };
 
-			if (!badge) {
-				badge = document.createElement('span');
-				badge.style.float = 'right';
-				badge.style.position = 'absolute';
-				badge.style.right = '5px';
-				badge.className = 'aui-badge';
-				badge.setAttribute('data-column-id', columnId);
-				while (ghxLimits.firstChild) {
-					ghxLimits.removeChild(ghxLimits.firstChild);
-				}
-				ghxLimits.appendChild(badge);
-			} else {
-				badge.removeChild(badge.childNodes[0]);
-			}
+  const updateBadge = (id, data) => {
+    var ghxWrapper = document.querySelector('.ghx-work-wrapper');
+    var node = ghxWrapper.querySelector(`#${id}`);
+    if (!node) {
+      node = document.createElement('div');
+      node.id = id;
+      node.className = 'aui-badge';
+      node.style.marginBottom = '5px';
+      // node.style.textTransform = 'uppercase';
+      ghxWrapper.prepend(node);
+    } else {
+      node.removeChild(node.childNodes[0]);
+    }
+    node.appendChild(document.createTextNode(data.join(', ')));
 
-			var column = document.querySelector('li[data-column-id="' + columnId + '"]');
+    return node;
+  };
 
-			if (!column) {
-				return;
-			}
+  const debug = false;
 
-			var totalPoints = 0;
+  // Backlog
+  const initBacklogCounter = () => {
+    const backlog = document.querySelector('.ghx-backlog-container');
+    const backlogId = backlog.getAttribute('data-sprint-id');
+    if (debug) console.log('backlogId', backlogId);
+    if (backlog) {
+      const backlogBadgeGroup = backlog.querySelector('.ghx-badge-group');
+      // const backlogStatTotal = backlog.querySelector('.ghx-stat-total');
+      let backlogBadge = backlogBadgeGroup.querySelector(
+        '.aui-badge[data-sprint-id="' + backlogId + '"]'
+      );
+      if (!backlogBadge) {
+        backlogBadge = document.createElement('span');
+        backlogBadge.className = 'aui-badge ghx-label-2';
+        backlogBadge.setAttribute('data-sprint-id', backlogId);
 
-			var tickets = column.querySelectorAll('.ghx-issue');
-			tickets.forEach(function (ticket) {
-				var estimate = ticket.querySelector('.ghx-estimate');
-				var issuePoints = parseInt(estimate.textContent, 10);
-				totalPoints += isNaN(issuePoints) ? 0 : issuePoints;
+        backlogBadgeGroup.appendChild(backlogBadge);
+      } else {
+        backlogBadge.removeChild(backlogBadge.childNodes[0]);
+      }
 
-				var ghxDays = ticket.querySelector('.ghx-days');
-				var issueDays = ghxDays ? parseInt(ghxDays.getAttribute('data-tooltip'), 10) : 0;
-				var issueKey = ticket.getAttribute('data-issue-key');
-				sprintTickets.push(
-					{
-						key: issueKey,
-						days: issueDays,
-						point: issuePoints,
-						status: columnName
-					});
-			});
+      const issues = backlog
+        .querySelector('.ghx-issues')
+        .querySelectorAll(
+          '.ghx-backlog-card:not(.ghx-filtered) .aui-badge.ghx-statistic-badge'
+        );
+      if (debug) console.log('stories', backlogId, issues);
+      const points = Array.from(issues)
+        .map(item => parseInt(item.textContent))
+        .reduce(calcSum);
+      backlogBadge.appendChild(document.createTextNode(points));
+    }
+  };
 
-			badge.appendChild(document.createTextNode(totalPoints));
-			columnPoints.push({ name: columnName, point: totalPoints });
-		});
+  // Active sprints
+  const initActiveSprintCounter = () => {
+    var sprintLength = localStorage.getItem('sprint_length') || 20;
+    var daysLeft = parseInt(
+      document.querySelector('.days-left').textContent,
+      10
+    );
+    var daysPass = sprintLength - daysLeft;
+    if (debug)
+      console.log(
+        'sprintLength',
+        sprintLength,
+        'daysLeft',
+        daysLeft,
+        'daysPass',
+        daysPass
+      );
 
-		if (debug) console.log('sprintTickets', sprintTickets);
+    var sprintReports = [];
+    var sprintTickets = [];
+    var columnPoints = [];
 
-		var deployTickets = sprintTickets.filter(item => item.status == 'deploy' && item.days <= daysPass);
-		if (debug) console.log('deployTickets', deployTickets);
-		if (deployTickets.length > 0) {
-			updateBadge('ghx-tickets', deployTickets.map(item => item.key)).style.textTransform = 'uppercase';
-		}
+    const headers = document.querySelectorAll('li[data-id]');
+    headers.forEach(function(header) {
+      var columnId = header.getAttribute('data-id');
+      var columnName = header
+        .querySelector('h2')
+        .textContent.toLowerCase()
+        .replace(/(in |ready for |\/deployment)/gi, '');
+      var columnHeader = header.querySelector('.ghx-column-header-flex');
+      var badge = header.querySelector('[data-column-id="' + columnId + '"]');
 
-		var doneTickets = sprintTickets.filter(item => item.status == 'done' && item.days <= daysPass);
-		if (debug) console.log('doneTickets', doneTickets);
-		if (doneTickets.length > 0) {
-			updateBadge('ghx-tickets', doneTickets.map(item => item.key)).style.textTransform = 'uppercase';
-		}
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.style.marginLeft = 'auto';
+        badge.className = 'aui-badge';
+        badge.setAttribute('data-column-id', columnId);
+        while (columnHeader.children.length > 1) {
+          columnHeader.removeChild(columnHeader.firstChild);
+        }
+        columnHeader.appendChild(badge);
+      } else {
+        badge.removeChild(badge.childNodes[0]);
+      }
 
-		sprintReports.push(`committed: 50`);
-		sprintReports.push(`in-sprint: ${getSum(columnPoints.filter(item => item.name != 'deploy' && item.name != 'done' && item.name != 'total'))}`);
-		sprintReports.push(`deploy-in-sprint: ${getSum(deployTickets.filter(item => item.point > 0))}`);
-		sprintReports.push(`done-in-sprint: ${getSum(doneTickets.filter(item => item.point > 0))}`);
-		updateBadge('ghx-sprint', sprintReports);
+      // var swimLanes = document.querySelectorAll('.ghx-swimlane');
+      // if (debug) console.log('swimLanes', swimLanes);
 
-		columnPoints.push({ name: 'total', point: getSum(columnPoints) });
-		updateBadge('ghx-status', columnPoints.map(item => `${item.name} ${item.point}`));
-	}
+      var columns = document.querySelectorAll(
+        'li[data-column-id="' + columnId + '"]'
+      );
+      if (debug) console.log('column', columnId, columns);
 
-	function initBoard() {
-		var board = document.getElementById('ghx-pool');
-		if (!board) {
-			return;
-		}
-		generateCounters();
-		new MutationObserver(generateCounters).observe(board, { childList: true });
-	}
+      if (!columns) {
+        return;
+      }
 
-	initBoard();
+      var totalPoints = 0;
 
-	// On page changed, init again board
-	new MutationObserver(initBoard).observe(document.body, { attributes: true });
+      var tickets = [];
+      columns.forEach(function(column) {
+        const issues = column.querySelectorAll('.ghx-issue');
+        if (debug) console.log(issues);
+        tickets = tickets.concat(Array.from(issues));
+      });
+
+      if (debug) console.log('tickets', columnId, tickets);
+
+      tickets.forEach(function(ticket) {
+        if (debug) console.log('ticket', ticket);
+        var estimate = ticket.querySelector('.ghx-estimate');
+        var issuePoints = parseInt(estimate.textContent);
+        totalPoints += isNaN(issuePoints) ? 0 : issuePoints;
+
+        var ghxDays = ticket.querySelector('.ghx-days');
+        var issueDays = ghxDays
+          ? parseInt(ghxDays.getAttribute('data-tooltip'))
+          : 0;
+        var issueKey = ticket.getAttribute('data-issue-key');
+        sprintTickets.push({
+          key: issueKey,
+          days: issueDays,
+          point: issuePoints,
+          status: columnName
+        });
+      });
+
+      badge.appendChild(document.createTextNode(totalPoints));
+      columnPoints.push({ name: columnName, point: totalPoints });
+    });
+
+    if (debug) console.log('sprintTickets', sprintTickets);
+
+    var deployTickets = sprintTickets.filter(
+      item => item.status == 'deploy' && item.days <= daysPass
+    );
+    if (debug) console.log('deployTickets', deployTickets);
+    if (deployTickets.length > 0) {
+      updateBadge(
+        'ghx-tickets',
+        deployTickets.map(item => item.key)
+      ).style.textTransform = 'uppercase';
+    }
+
+    var doneTickets = sprintTickets.filter(
+      item => item.status == 'done' && item.days <= daysPass
+    );
+    if (debug) console.log('doneTickets', doneTickets);
+    if (doneTickets.length > 0) {
+      updateBadge(
+        'ghx-tickets',
+        doneTickets.map(item => item.key)
+      ).style.textTransform = 'uppercase';
+    }
+
+    sprintReports.push(
+      `committed: ${localStorage.getItem('sprint_committed') || 20}`
+    );
+    sprintReports.push(
+      `in-sprint: ${getSum(
+        columnPoints.filter(
+          item =>
+            item.name != 'deploy' && item.name != 'done' && item.name != 'total'
+        )
+      )}`
+    );
+    sprintReports.push(
+      `deploy-in-sprint: ${getSum(
+        deployTickets.filter(item => item.point > 0)
+      )}`
+    );
+    sprintReports.push(
+      `done-in-sprint: ${getSum(doneTickets.filter(item => item.point > 0))}`
+    );
+    updateBadge('ghx-sprint', sprintReports);
+
+    columnPoints.push({ name: 'total', point: getSum(columnPoints) });
+    updateBadge(
+      'ghx-status',
+      columnPoints.map(item => `${item.name} ${item.point}`)
+    );
+  };
+
+  function initBoard() {
+    var backlog = document.getElementById('ghx-backlog');
+    if (backlog) {
+      initBacklogCounter();
+      new MutationObserver(initBacklogCounter).observe(backlog, {
+        attributes: true,
+        childList: true
+      });
+    }
+
+    var pool = document.getElementById('ghx-pool');
+    if (pool) {
+      initActiveSprintCounter();
+      new MutationObserver(initActiveSprintCounter).observe(pool, {
+        childList: true
+      });
+    }
+  }
+
+  initBoard();
+
+  // On page changed, init again board
+  new MutationObserver(initBoard).observe(document.body, { attributes: true });
 })(document);
