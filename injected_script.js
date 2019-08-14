@@ -56,7 +56,7 @@
         );
       if (debug) console.log('stories', backlogId, issues);
       const points = Array.from(issues)
-        .map(item => parseInt(item.textContent))
+        .map(item => parseInt(item.textContent) || 0)
         .reduce(calcSum);
       backlogBadge.appendChild(document.createTextNode(points));
     }
