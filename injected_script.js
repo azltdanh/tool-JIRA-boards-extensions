@@ -205,9 +205,46 @@
     );
   };
 
+  // Issue Navigator
+  const initIssueNavigatorCounter = () => {
+    const issueNavigator = document.getElementById(
+      'global-issue-navigator-container'
+    );
+    const spSpan = document.evaluate(
+      '//span[text()="Story Points"]',
+      issueNavigator,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    ).singleNodeValue;
+    const spHeader = spSpan.closest('th');
+
+    if (spHeader) {
+      let spBadge = spHeader.querySelector('.aui-badge');
+      if (!spBadge) {
+        spBadge = document.createElement('span');
+        spBadge.className = 'aui-badge ghx-label-2';
+
+        spHeader.appendChild(spBadge);
+      } else {
+        spBadge.removeChild(spBadge.childNodes[0]);
+      }
+
+      const issues = document
+        .getElementById('issuetable')
+        .querySelectorAll(`.${spHeader.getAttribute('data-id')}`);
+      if (debug) console.log('stories', issues);
+      const points = Array.from(issues)
+        .map(item => parseInt(item.textContent) || 0)
+        .reduce(calcSum);
+      spBadge.appendChild(document.createTextNode(points));
+    }
+  };
+
   function initBoard() {
-    var backlog = document.getElementById('ghx-backlog');
+    const backlog = document.getElementById('ghx-backlog');
     if (backlog) {
+      console.log('initBacklogCounter');
       initBacklogCounter();
       new MutationObserver(initBacklogCounter).observe(backlog, {
         attributes: true,
@@ -215,10 +252,22 @@
       });
     }
 
-    var pool = document.getElementById('ghx-pool');
+    const pool = document.getElementById('ghx-pool');
     if (pool) {
+      console.log('initActiveSprintCounter');
       initActiveSprintCounter();
       new MutationObserver(initActiveSprintCounter).observe(pool, {
+        childList: true
+      });
+    }
+
+    const issueNavigator = document.getElementById(
+      'global-issue-navigator-container'
+    );
+    if (issueNavigator) {
+      console.log('initIssueNavigatorCounter');
+      initIssueNavigatorCounter();
+      new MutationObserver(initIssueNavigatorCounter).observe(issueNavigator, {
         childList: true
       });
     }

@@ -7,7 +7,8 @@
 	"permissions": [],
   	"content_scripts": [{
 	  "matches": [
-		"*://*/secure/RapidBoard.jspa*"
+		"*://*/secure/RapidBoard.jspa*",
+		"*://*/issues/?*"
 	  ],
 	  "js": ["injected_script.js"]
 	}],
