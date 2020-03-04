@@ -90,7 +90,7 @@
       var columnName = header
         .querySelector('h2')
         .textContent.toLowerCase()
-        .replace(/(in |ready for |\/deployment)/gi, '');
+        .replace(/(ready for |\/deployment)/gi, '');
       var columnHeader = header.querySelector('.ghx-column-header-flex');
       var badge = header.querySelector('[data-column-id="' + columnId + '"]');
 
@@ -177,8 +177,10 @@
       ).style.textTransform = 'uppercase';
     }
 
+    sprintReports.push(`total: ${getSum(columnPoints)}`);
+    // columnPoints.push({ name: 'total', point: getSum(columnPoints) });
     sprintReports.push(
-      `committed: ${localStorage.getItem('sprint_committed') || 20}`
+      `commit: ${localStorage.getItem('sprint_committed') || 20}`
     );
     sprintReports.push(
       `in-sprint: ${getSum(
@@ -198,7 +200,6 @@
     );
     updateBadge('ghx-sprint', sprintReports);
 
-    columnPoints.push({ name: 'total', point: getSum(columnPoints) });
     updateBadge(
       'ghx-status',
       columnPoints.map(item => `${item.name} ${item.point}`)
@@ -253,7 +254,8 @@
     }
 
     const pool = document.getElementById('ghx-pool');
-    if (pool) {
+    const days = document.querySelector('.days-left');
+    if (pool && days) {
       console.log('initActiveSprintCounter');
       initActiveSprintCounter();
       new MutationObserver(initActiveSprintCounter).observe(pool, {
