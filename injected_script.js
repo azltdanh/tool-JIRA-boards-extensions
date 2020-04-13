@@ -97,11 +97,14 @@
       if (!badge) {
         badge = document.createElement('span');
         badge.style.marginLeft = 'auto';
+        badge.style.position = 'absolute';
+        // badge.style.top = '4px';
+        badge.style.right = '4px';
         badge.className = 'aui-badge';
         badge.setAttribute('data-column-id', columnId);
-        while (columnHeader.children.length > 1) {
-          columnHeader.removeChild(columnHeader.firstChild);
-        }
+        // while (columnHeader.children.length > 1) {
+        //   columnHeader.removeChild(columnHeader.firstChild);
+        // }
         columnHeader.appendChild(badge);
       } else {
         badge.removeChild(badge.childNodes[0]);
